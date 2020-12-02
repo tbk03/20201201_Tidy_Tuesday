@@ -17,4 +17,80 @@ shelters
 shelters %>% 
   distinct(sector)
 ```
+```{r}
+shelters_1 <- shelters %>% 
+  select(id, sector, occupancy, capacity) %>%
+  pivot_longer(cols = c(occupancy, capacity), names_to = "metric", values_to = "number")
+
+shelters_1
+
+```
+```{r}
+p <- ggplot(data = shelters_1,
+            mapping = aes(x = number, fill = metric)
+            )
+
+p + geom_histogram(position = "dodge")
+```
+
+```{r}
+
+capacity_occupancy_plot <- function(xlim = c(0, 900), ylim = c(0, 900)) {
+  
+  list(geom_point(mapping = aes(colour = sector), alpha = 0.5),
+      scale_colour_brewer(type = "qual", palette = "Dark2"),
+      coord_cartesian(xlim = xlim, ylim = ylim),
+      theme_minimal()
+  )  
+}
+
+p <- ggplot(data = shelters,
+            mapping = aes(x = capacity, y = occupancy))
+
+p + capacity_occupancy_plot() +
+        geom_abline(slope = 1, intercept = 0)
+
+p + capacity_occupancy_plot(xlim = c(0, 300), ylim = c(0, 300)) +
+          geom_abline(slope = 1, intercept = 0)
+
+```
+
+```{r}
+shelters <- shelters %>% 
+  filter(capacity > 0) %>% 
+  mutate(occupancy_rate = occupancy / capacity)
+
+
+capacity_ratio_plot <- function(x_max){
+    p <- ggplot(data = shelters,
+            mapping = aes(capacity, y = occupancy_rate)
+            )
+
+    p + capacity_occupancy_plot(xlim = c(0, x_max), ylim = c(0, 5))
+}
+
+x_lims <- seq(from = 100, to = 800, by = 200)
+
+
+x_lims %>% 
+  map(~capacity_ratio_plot(.))
+
+# p <- ggplot(data = shelters,
+#             mapping = aes(capacity, y = occupancy_rate)
+#             )
+# 
+# p + capacity_occupancy_plot(xlim = c(0, 900), ylim = c(0, 5))
+# p + capacity_occupancy_plot(xlim = c(0, 300), ylim = c(0, 5))
+```
+
+```{r}
+p <- ggplot(data = shelters,
+            mapping = aes(x = occupancy_rate)
+            )
+p + geom_histogram(binwidth = 0.1)
+```
+
+```{r}
+summary(shelters$occupancy_rate)
+```
 
