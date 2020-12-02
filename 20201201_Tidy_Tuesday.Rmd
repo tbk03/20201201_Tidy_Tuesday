@@ -1,0 +1,20 @@
+---
+title: "20201201_tidy_tuesday"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+shelters <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-12-01/shelters.csv')
+shelters
+```
+
+```{r}
+shelters %>% 
+  distinct(sector)
+```
+
