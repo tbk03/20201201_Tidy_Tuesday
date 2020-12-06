@@ -113,14 +113,14 @@ shelters_2019 <- shelters %>%
   filter(occupancy_date >= as.POSIXct("2019-01-01"))
 
 # calculate mean occupancy and capacities of each shelter over 2019
-shelters_2019 <- shelters_2019 %>% 
+shelters_2019_mean_rates <- shelters_2019 %>% 
   group_by(shelter_name, sector) %>% 
   summarise(mean_occ = mean(occupancy, na.rm = TRUE),
             mean_cap = mean(capacity, na.rm = TRUE)
             ) %>% 
   ungroup()
 
-shelters_2019
+shelters_2019_mean_rates
 
 ```
 
@@ -128,7 +128,7 @@ shelters_2019
 # define break points for binning data
 b <- c(0, 5, 10, 25, 50, 100, 250, 500, 1000)
 
-capacity_occupancy <- shelters_2019 %>% 
+capacity_occupancy <- shelters_2019_mean_rates %>% 
   mutate(perc_capacity = mean_cap / sum(mean_cap),
          perc_occupancy = mean_occ / sum(mean_occ)
          ) %>% 
@@ -190,21 +190,106 @@ p + geom_bar(stat = "identity") +
 
 ```{r}
   
-capacity_occupancy <- shelters %>% 
-  select(id, capacity, occupancy) %>% 
-  mutate(perc_capacity = capacity / sum(capacity),
-         perc_occupancy = occupancy / sum(occupancy)
-         ) %>% 
-  pivot_longer(cols = c(occupancy, capacity), names_to = "metric", values_to = "number") %>% 
-  mutate(bin = cut(number, breaks = b)) %>% 
-  
-  group_by(bin, metric) %>%
-  summarise(perc_cap = sum(perc_capacity),
-            perc_occ = sum(perc_occupancy),
-            n =
-            )
-  
-
-capacity_occupancy
+# capacity_occupancy <- shelters %>% 
+#   select(id, capacity, occupancy) %>% 
+#   mutate(perc_capacity = capacity / sum(capacity),
+#          perc_occupancy = occupancy / sum(occupancy)
+#          ) %>% 
+#   pivot_longer(cols = c(occupancy, capacity), names_to = "metric", values_to = "number") %>% 
+#   mutate(bin = cut(number, breaks = b)) %>% 
+#   
+#   group_by(bin, metric) %>%
+#   summarise(perc_cap = sum(perc_capacity),
+#             perc_occ = sum(perc_occupancy),
+#             n =
+#             )
+#   
+# 
+# capacity_occupancy
 ```
+
+```{r}
+shelters_2019_capacity <- shelters_2019_mean_rates %>%
+  select(-mean_occ) %>% 
+  mutate(mean_cap = round(mean_cap)) %>% 
+  rename(capacity_2019_mean = mean_cap) %>% 
+  mutate(shelter_size = cut(capacity_2019_mean, breaks = b))
+
+shelters_2019_capacity
+  
+```
+```{r}
+shelters_2019_cap_by_sec_size <- shelters_2019_capacity %>% 
+  group_by(sector) %>% 
+  mutate(prop_sector_cap = capacity_2019_mean / sum(capacity_2019_mean)) %>% 
+  ungroup() %>% 
+  
+  group_by(sector, shelter_size) %>% 
+  summarise(prop_cap = sum(prop_sector_cap)) %>% 
+  mutate(total_cap = sum(prop_cap)) %>% 
+  ungroup() %>% 
+  
+  mutate(shelter_size = fct_relevel(shelter_size, "(0,5]", "(5-10]", "(10-25]", "(25-50]", "(50-100]", "(100-250]", "(250-500]", "(500-1000]"))
+
+shelters_2019_cap_by_sec_size 
+
+```
+
+```{r}
+shelters_2019_cap_by_sec_size <- shelters_2019_cap_by_sec_size %>% 
+  mutate(shelter_size = fct_recode(shelter_size, 
+                                   "0-5" = "(0,5]",
+                                   "5-10" = "(5,10]",
+                                   "10-25" = "(10,25]",
+                                   "25-50" = "(25,50]",
+                                   "50-100" = "(50,100]",
+                                   "100-250" = "(100,250]",
+                                   "250-500" = "(250,500]",
+                                   "500-1000" = "(500,1e+03]"
+                                   )
+         )
+
+# shelter_sizes <- c("(0-5]""0-5", "5-10", "10-25", "25-50", "50-100", "100-250", "250-500", "500-1000")
+```
+
+
+```{r}
+shelters_2019_cap_by_sec_size <- shelters_2019_cap_by_sec_size %>% 
+  mutate(sector = factor(sector, levels = c("Women", "Men", "Youth", "Co-ed", "Families")))
+```
+
+
+```{r}
+library(viridis)
+
+p <- ggplot(data = shelters_2019_cap_by_sec_size,
+            mapping = aes(x = sector, y = prop_cap, fill = forcats::fct_rev(shelter_size)
+                          )
+            )
+
+p + geom_bar(stat = "identity", colour = "gray80") +
+  
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_viridis(discrete = TRUE) +
+  
+  guides(fill = guide_legend(reverse = TRUE,
+                             title.position = "top",
+                             label.position = "bottom",
+                             keywidth = 3,
+                             nrow = 1)
+         ) +
+  
+  labs(x = "Shelter type\n", y = "\nPercentage of shelter capacity",
+       fill = "Capacity of shelter (number of people)",
+       title = "Shelter capacity in Toronto (2019), by shelter type and shelter size",
+       subtitle = "Families are more likley to find themselves in large shelters than individuals\n",
+       caption = "Source: open.toronto.ca\nFigure insipred by: socviz.co") +
+  
+  theme_minimal() +
+  theme(legend.position = "top") +
+  
+  coord_flip()
+```
+
+
 
