@@ -279,17 +279,32 @@ p + geom_bar(stat = "identity", colour = "gray80") +
                              nrow = 1)
          ) +
   
-  labs(x = "Shelter type\n", y = "\nPercentage of shelter capacity",
+  labs(x = "", y = "\nPercentage of shelter capacity",
        fill = "Capacity of shelter (number of people)",
-       title = "Shelter capacity in Toronto (2019), by shelter type and shelter size",
+       title = "Shelter capacity in Toronto (2019) by shelter type and shelter size",
        subtitle = "Families are more likley to find themselves in large shelters than individuals\n",
        caption = "Source: open.toronto.ca\nFigure insipred by: socviz.co") +
   
   theme_minimal() +
-  theme(legend.position = "top") +
+  theme(legend.position = "top",
+        axis.text.y = element_text(face = "bold"),
+        axis.title.x = element_text(face = "italic")) +
   
   coord_flip()
 ```
+```{r}
+ggsave("toronto_shelters.png")
+```
 
+```{r}
+shelters_2019 %>% 
+  group_by(occupancy_date, sector) %>% 
+  summarise(occupancy = sum(occupancy) / sum(capacity)) %>% 
+  
+  ggplot(mapping = aes(x = occupancy_date, y = occupancy, colour = sector)) +
+  geom_line() +
+  
+  coord_polar()
+```
 
 
